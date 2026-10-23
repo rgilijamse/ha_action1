@@ -187,3 +187,85 @@ async def test_options_list_groups(hass, entry, api) -> None:
     await hass.async_block_till_done()
     assert entry.options == {"ignored_groups": ["Stored", "Occasional"]}
     assert PC_OCCASIONAL not in entry.runtime_data.data
+
+
+def since_state(hass, entry, endpoint_id: str, key: str) -> str:
+    return hass.states.get(entity_ids(hass, entry)[f"{endpoint_id}_{key}"]).state
+
+
+async def test_since_timestamps(hass, entry, api, frozen, hass_storage) -> None:
+    await setup(hass, entry)
+    # Conditions present at the first poll date from that poll.
+    assert since_state(hass, entry, PC_ACTIVE, "critical_missing_since") == NOW
+    assert since_state(hass, entry, PC_ACTIVE, "reboot_pending_since") == NOW
+    assert since_state(hass, entry, SERVER, "critical_missing_since") == "unknown"
+    assert since_state(hass, entry, SERVER, "reboot_pending_since") == "unknown"
+
+    # Unchanged while the condition holds; the server's reboot starts later.
+    server = next(e for e in api.endpoints if e["id"] == SERVER)
+    server["reboot_required"] = "Yes"
+    api.install()
+    await poll(hass, frozen)
+    later = "2026-10-23T13:00:01+00:00"
+    assert since_state(hass, entry, PC_ACTIVE, "critical_missing_since") == NOW
+    assert since_state(hass, entry, SERVER, "reboot_pending_since") == later
+
+    # Cleared when it ends.
+    active = next(e for e in api.endpoints if e["id"] == PC_ACTIVE)
+    active["missing_updates"] = {"critical": 0, "other": 2}
+    active["reboot_required"] = "No"
+    api.install()
+    await poll(hass, frozen)
+    assert since_state(hass, entry, PC_ACTIVE, "critical_missing_since") == "unknown"
+    assert since_state(hass, entry, PC_ACTIVE, "reboot_pending_since") == "unknown"
+    assert since_state(hass, entry, SERVER, "reboot_pending_since") == later
+
+    # Ignored PCs are not stored.
+    stored = hass_storage[f"{DOMAIN}.{entry.entry_id}"]["data"]
+    assert set(stored) == {PC_OCCASIONAL, SERVER}
+    assert stored[SERVER] == {"reboot_pending_since": later}
+
+
+async def test_since_survives_restart(hass, entry, api, hass_storage) -> None:
+    earlier = "2026-10-01T08:00:00+00:00"
+    hass_storage[f"{DOMAIN}.{entry.entry_id}"] = {
+        "version": 1,
+        "key": f"{DOMAIN}.{entry.entry_id}",
+        "data": {
+            PC_ACTIVE: {"critical_missing_since": earlier, "reboot_pending_since": earlier},
+            # Rebooted while HA was down.
+            SERVER: {"reboot_pending_since": earlier},
+        },
+    }
+    await setup(hass, entry)
+    assert since_state(hass, entry, PC_ACTIVE, "critical_missing_since") == earlier
+    assert since_state(hass, entry, PC_ACTIVE, "reboot_pending_since") == earlier
+    assert since_state(hass, entry, SERVER, "reboot_pending_since") == "unknown"
+
+
+async def test_since_kept_while_polls_fail(hass, entry, api, frozen) -> None:
+    await setup(hass, entry)
+    api.endpoints_status = 500
+    api.install()
+    await poll(hass, frozen)
+    assert since_state(hass, entry, PC_ACTIVE, "critical_updates") == "unavailable"
+    assert since_state(hass, entry, PC_ACTIVE, "critical_missing_since") == NOW
+
+
+async def test_since_kept_when_action1_does_not_say(hass, entry, api, frozen) -> None:
+    await setup(hass, entry)
+    active = next(e for e in api.endpoints if e["id"] == PC_ACTIVE)
+    active["missing_updates"] = None
+    active["reboot_required"] = ""
+    api.install()
+    await poll(hass, frozen)
+    assert since_state(hass, entry, PC_ACTIVE, "critical_missing_since") == NOW
+    assert since_state(hass, entry, PC_ACTIVE, "reboot_pending_since") == NOW
+
+
+async def test_remove_entry_deletes_store(hass, entry, api, hass_storage) -> None:
+    await setup(hass, entry)
+    assert f"{DOMAIN}.{entry.entry_id}" in hass_storage
+    await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert f"{DOMAIN}.{entry.entry_id}" not in hass_storage

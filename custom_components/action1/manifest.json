@@ -9,5 +9,5 @@
   "issue_tracker": "https://github.com/rgilijamse/ha_action1/issues",
   "loggers": ["custom_components.action1"],
   "requirements": [],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

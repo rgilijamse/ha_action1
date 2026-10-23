@@ -1,6 +1,7 @@
 """Polls Action1 for the patch state of every managed endpoint."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -9,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -48,6 +50,9 @@ class Endpoint:
     critical_updates: int | None
     other_updates: int | None
     critical_vulnerabilities: int | None
+    # Tracked by the coordinator, not sent by Action1.
+    critical_missing_since: datetime | None = None
+    reboot_pending_since: datetime | None = None
 
     @classmethod
     def from_api(cls, raw: dict[str, Any]) -> Endpoint:
@@ -91,6 +96,18 @@ class Endpoint:
         )
 
 
+STORAGE_VERSION = 1
+
+# Conditions whose start the coordinator records: stored key -> test on a fresh poll.
+# None means Action1 didn't say, which leaves the stored value as it is.
+SINCE: dict[str, Callable[[Endpoint], bool | None]] = {
+    "critical_missing_since": lambda e: (
+        None if e.critical_updates is None else e.critical_updates > 0
+    ),
+    "reboot_pending_since": lambda e: e.reboot_required,
+}
+
+
 class Action1Coordinator(DataUpdateCoordinator[dict[str, Endpoint]]):
     """Fetches all endpoints in one paged call, minus the ignored groups."""
 
@@ -108,6 +125,14 @@ class Action1Coordinator(DataUpdateCoordinator[dict[str, Endpoint]]):
         # Every group name seen, ignored ones included, for the options form.
         self.all_groups: set[str] = set()
         self.last_success: datetime | None = None
+        # {endpoint_id: {key in SINCE: ISO timestamp}}, kept across restarts.
+        self.store: Store[dict[str, dict[str, str]]] = Store(
+            hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}"
+        )
+        self.since: dict[str, dict[str, str]] = {}
+
+    async def _async_setup(self) -> None:
+        self.since = await self.store.async_load() or {}
 
     async def _async_update_data(self) -> dict[str, Endpoint]:
         try:
@@ -119,6 +144,30 @@ class Action1Coordinator(DataUpdateCoordinator[dict[str, Endpoint]]):
         endpoints = [Endpoint.from_api(item) for item in raw if item.get("id")]
         self.all_groups = {g for ep in endpoints for g in ep.groups}
         self.last_success = dt_util.utcnow()
-        return {
+        data = {
             ep.id: ep for ep in endpoints if not self.ignored_groups.intersection(ep.groups)
         }
+        await self._track_since(data)
+        return data
+
+    async def _track_since(self, data: dict[str, Endpoint]) -> None:
+        """Record when each condition started, clear it when it ends, and save changes."""
+        now = dt_util.utcnow().replace(microsecond=0).isoformat()
+        since: dict[str, dict[str, str]] = {}
+        for ep in data.values():
+            old = self.since.get(ep.id, {})
+            new: dict[str, str] = {}
+            for key, active in SINCE.items():
+                state = active(ep)
+                if state is None and key in old:
+                    new[key] = old[key]
+                elif state:
+                    new[key] = old.get(key, now)
+                if key in new:
+                    setattr(ep, key, dt_util.parse_datetime(new[key]))
+            if new:
+                since[ep.id] = new
+        if since != self.since:
+            # PCs that left Action1 or the watched groups are dropped too.
+            self.since = since
+            await self.store.async_save(since)

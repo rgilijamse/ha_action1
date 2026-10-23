@@ -75,6 +75,8 @@
     "sensor": {
       "critical_updates": { "name": "Critical updates missing" },
       "other_updates": { "name": "Other updates missing" },
+      "critical_missing_since": { "name": "Critical updates missing since" },
+      "reboot_pending_since": { "name": "Reboot pending since" },
       "critical_vulnerabilities": { "name": "Critical vulnerabilities" },
       "last_seen": { "name": "Last seen" },
       "days_since_seen": { "name": "Days since seen" },

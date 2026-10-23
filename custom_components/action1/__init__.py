@@ -6,10 +6,11 @@ from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.storage import Store
 
 from .api import Action1Client
 from .const import CONF_REGION, DOMAIN
-from .coordinator import Action1Coordinator
+from .coordinator import STORAGE_VERSION, Action1Coordinator
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
 
@@ -34,6 +35,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: Action1ConfigEntry) -> b
 async def async_unload_entry(hass: HomeAssistant, entry: Action1ConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: Action1ConfigEntry) -> None:
+    """Delete the stored "since" timestamps with the entry."""
+    await Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}").async_remove()
 
 
 async def async_remove_config_entry_device(

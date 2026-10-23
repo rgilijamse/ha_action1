@@ -25,6 +25,8 @@ from .entity import Action1EndpointEntity, Action1HubEntity, add_endpoint_entiti
 class Action1SensorDescription(SensorEntityDescription):
     value_fn: Callable[[Endpoint], datetime | float | int | None]
     attrs_fn: Callable[[Endpoint], dict[str, Any]] | None = None
+    # HA's own record rather than Action1 data: still valid while polls fail.
+    kept_while_polls_fail: bool = False
 
 
 SENSORS: tuple[Action1SensorDescription, ...] = (
@@ -37,6 +39,18 @@ SENSORS: tuple[Action1SensorDescription, ...] = (
         key="other_updates",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda e: e.other_updates,
+    ),
+    Action1SensorDescription(
+        key="critical_missing_since",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        kept_while_polls_fail=True,
+        value_fn=lambda e: e.critical_missing_since,
+    ),
+    Action1SensorDescription(
+        key="reboot_pending_since",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        kept_while_polls_fail=True,
+        value_fn=lambda e: e.reboot_pending_since,
     ),
     Action1SensorDescription(
         key="critical_vulnerabilities",
@@ -95,6 +109,12 @@ class Action1Sensor(Action1EndpointEntity, SensorEntity):
     def __init__(self, coordinator, endpoint_id: str, description: Action1SensorDescription) -> None:
         super().__init__(coordinator, endpoint_id, description.key)
         self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        if self.entity_description.kept_while_polls_fail:
+            return self.endpoint is not None
+        return super().available
 
     @property
     def native_value(self) -> datetime | float | int | None:

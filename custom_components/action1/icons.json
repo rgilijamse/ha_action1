@@ -12,6 +12,8 @@
     "sensor": {
       "critical_updates": { "default": "mdi:shield-alert-outline" },
       "other_updates": { "default": "mdi:package-up" },
+      "critical_missing_since": { "default": "mdi:shield-alert-outline" },
+      "reboot_pending_since": { "default": "mdi:restart-alert" },
       "critical_vulnerabilities": { "default": "mdi:bug-outline" },
       "last_seen": { "default": "mdi:eye-check-outline" },
       "days_since_seen": { "default": "mdi:calendar-clock" },
