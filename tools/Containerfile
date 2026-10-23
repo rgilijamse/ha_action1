@@ -1,0 +1,13 @@
+# Test image: Home Assistant test harness.
+#   podman build -t localhost/ha-action1-test -f tools/Containerfile tools/
+#   podman run --rm -v "$PWD":/src:ro localhost/ha-action1-test pytest
+FROM docker.io/library/python:3.14-slim
+
+# 0.13.372 pins homeassistant==2026.10.1 (the version running at home).
+ARG HARNESS_VERSION=0.13.372
+RUN pip install --no-cache-dir "pytest-homeassistant-custom-component==${HARNESS_VERSION}"
+
+WORKDIR /src
+# Keep caches out of the read-only source mount.
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTEST_ADDOPTS="-p no:cacheprovider"

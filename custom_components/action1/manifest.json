@@ -1,0 +1,13 @@
+{
+  "domain": "action1",
+  "name": "Action1",
+  "codeowners": ["@rgilijamse"],
+  "config_flow": true,
+  "documentation": "https://github.com/rgilijamse/ha_action1",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/rgilijamse/ha_action1/issues",
+  "loggers": ["custom_components.action1"],
+  "requirements": [],
+  "version": "0.1.0"
+}

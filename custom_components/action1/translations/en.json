@@ -1,0 +1,85 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Action1 API credential",
+        "description": "Create an API credential in the Action1 console. A read-only role is enough: the integration never changes anything in Action1.",
+        "data": {
+          "region": "Region",
+          "client_id": "Client ID",
+          "client_secret": "Client secret"
+        },
+        "data_description": {
+          "region": "The data center your Action1 account lives in, as in the console address (app.eu.action1.com is Europe)."
+        }
+      },
+      "organization": {
+        "title": "Organization",
+        "description": "This credential can see several organizations. Pick the one to add; add the integration again for another.",
+        "data": {
+          "org_id": "Organization"
+        }
+      },
+      "reauth_confirm": {
+        "title": "New API credential",
+        "description": "Action1 rejected the API credential for {title}. Enter a working one for the same organization.",
+        "data": {
+          "client_id": "Client ID",
+          "client_secret": "Client secret"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Action1 rejected the client ID or secret.",
+      "cannot_connect": "Could not reach the Action1 API in this region.",
+      "wrong_organization": "This credential can't see the organization this entry was set up for."
+    },
+    "abort": {
+      "already_configured": "This Action1 organization is already set up.",
+      "no_organizations": "The credential works but can't see any organization.",
+      "reauth_successful": "Credential updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Ignored groups",
+        "data": {
+          "ignored_groups": "Ignored groups"
+        },
+        "data_description": {
+          "ignored_groups": "PCs in any of these Action1 groups get no entities, e.g. PCs in storage. Their existing devices can then be deleted from the device page."
+        }
+      }
+    }
+  },
+  "selector": {
+    "region": {
+      "options": {
+        "na": "North America (app.action1.com)",
+        "na-2": "North America 2 (app.na-2.action1.com)",
+        "eu": "Europe (app.eu.action1.com)",
+        "au": "Australia (app.au.action1.com)",
+        "uk": "United Kingdom (app.uk.action1.com)"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "reboot_required": { "name": "Reboot required" },
+      "connected": { "name": "Connected" }
+    },
+    "button": {
+      "refresh": { "name": "Refresh now" }
+    },
+    "sensor": {
+      "critical_updates": { "name": "Critical updates missing" },
+      "other_updates": { "name": "Other updates missing" },
+      "critical_vulnerabilities": { "name": "Critical vulnerabilities" },
+      "last_seen": { "name": "Last seen" },
+      "days_since_seen": { "name": "Days since seen" },
+      "last_boot": { "name": "Last boot" },
+      "last_successful_poll": { "name": "Last successful poll" }
+    }
+  }
+}

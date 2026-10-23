@@ -1,0 +1,22 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "reboot_required": {
+        "default": "mdi:restart",
+        "state": { "on": "mdi:restart-alert" }
+      }
+    },
+    "button": {
+      "refresh": { "default": "mdi:refresh" }
+    },
+    "sensor": {
+      "critical_updates": { "default": "mdi:shield-alert-outline" },
+      "other_updates": { "default": "mdi:package-up" },
+      "critical_vulnerabilities": { "default": "mdi:bug-outline" },
+      "last_seen": { "default": "mdi:eye-check-outline" },
+      "days_since_seen": { "default": "mdi:calendar-clock" },
+      "last_boot": { "default": "mdi:power" },
+      "last_successful_poll": { "default": "mdi:cloud-check-outline" }
+    }
+  }
+}
