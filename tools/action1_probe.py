@@ -71,7 +71,8 @@ class Api:
             batch = page.get("items") or []
             items.extend(batch)
             offset += len(batch)
-            if not batch or offset >= (page.get("total_items") or 0):
+            # total_items comes back as a string ("3"), not a number.
+            if not batch or offset >= int(page.get("total_items") or 0):
                 break
         return {**first, "items": items}
 
