@@ -125,6 +125,14 @@ class Action1Client:
         """Return every managed endpoint with all fields (patch and reboot state included)."""
         return await self._paged(f"/endpoints/managed/{org_id}", {"fields": "*"})
 
+    async def get_vulnerabilities(self, org_id: str) -> list[dict[str, Any]]:
+        """Return every open CVE in the organization, one record per CVE (thousands)."""
+        return await self._paged(f"/vulnerabilities/{org_id}")
+
+    async def get_vulnerability_endpoints(self, org_id: str, cve_id: str) -> list[dict[str, Any]]:
+        """Return the endpoints that have this CVE open, with the vulnerable software."""
+        return await self._paged(f"/vulnerabilities/{org_id}/{cve_id}/endpoints")
+
     @staticmethod
     async def _message(resp: aiohttp.ClientResponse) -> str:
         try:

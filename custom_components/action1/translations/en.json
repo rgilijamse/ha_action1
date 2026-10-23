@@ -77,11 +77,13 @@
       "other_updates": { "name": "Other updates missing" },
       "critical_missing_since": { "name": "Critical updates missing since" },
       "reboot_pending_since": { "name": "Reboot pending since" },
+      "known_exploited_cves": { "name": "Known-exploited CVEs" },
       "critical_vulnerabilities": { "name": "Critical vulnerabilities" },
       "last_seen": { "name": "Last seen" },
       "days_since_seen": { "name": "Days since seen" },
       "last_boot": { "name": "Last boot" },
-      "last_successful_poll": { "name": "Last successful poll" }
+      "last_successful_poll": { "name": "Last successful poll" },
+      "last_known_exploited_check": { "name": "Last known-exploited check" }
     }
   }
 }

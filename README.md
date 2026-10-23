@@ -10,7 +10,7 @@ region (Windows 11 PCs and one Ubuntu server).
 - [x] Per-PC update, vulnerability, reboot and last-seen sensors (hourly poll)
 - [x] Ignored groups (e.g. PCs in storage), refresh button, last-successful-poll sensor
 - [x] "Critical missing since" / "reboot pending since", kept across restarts
-- [ ] Known-exploited CVEs per PC (Action1's `cisa_kev` flag)
+- [x] Known-exploited CVEs per PC (Action1's `cisa_kev` flag), checked every 6 hours
 
 ## Setup
 
@@ -31,6 +31,7 @@ Per PC (device name = the PC's name in Action1, which can differ from its hostna
 | `sensor.<pc>_other_updates_missing` | Other missing updates |
 | `sensor.<pc>_critical_updates_missing_since` | When the critical count last went from 0 to above 0; unknown while it is 0 |
 | `sensor.<pc>_reboot_pending_since` | When the reboot flag last came on; unknown while it is off |
+| `sensor.<pc>_known_exploited_cves` | Open CVEs that CISA lists as exploited in the wild; `cves` and `software` (e.g. `Google Chrome 144.0.7559.133 → 156.0.8078.48`) as attributes |
 | `sensor.<pc>_critical_vulnerabilities` | Open critical CVEs (usually high: third-party software counts too) |
 | `sensor.<pc>_last_seen` | Last check-in with Action1; `device_name`, `platform`, `os`, `agent_version` as attributes |
 | `sensor.<pc>_days_since_seen` | Same, as a number for graphs and thresholds |
@@ -46,6 +47,12 @@ already there when the integration was added dates from that first poll. Alerts 
 compare them with `now()` in a template trigger, which also fires after a restart if
 the threshold passed while HA was down.
 
+The known-exploited check reads Action1's whole CVE list (thousands of records, ~30
+pages: the API ignores a `cisa_kev` filter) and then the PCs for each flagged CVE, so
+it runs every 6 hours rather than hourly. Its last result is stored too; after a
+restart it is reused if it is less than an hour old, otherwise the check runs again
+in the background.
+
 Every per-PC entity has a `groups` attribute with its Action1 group names, so
 automations can treat groups differently (e.g. no "gone quiet" alert for laptops
 that are only used now and then).
@@ -55,7 +62,8 @@ On the organization's device:
 | Entity | What it is |
 |---|---|
 | `sensor.action1_<org>_last_successful_poll` | When Action1 last answered. Stays available while polls fail, so an alert can tell how long they have been failing. |
-| `button.action1_<org>_refresh_now` | Poll now instead of waiting for the hourly poll |
+| `sensor.action1_<org>_last_known_exploited_check` | When the known-exploited check last completed; stays available while it fails |
+| `button.action1_<org>_refresh_now` | Poll and check now instead of waiting |
 
 Numeric sensors have `state_class: measurement`, so they keep long-term statistics
 past the recorder's purge.
@@ -75,6 +83,10 @@ field formats were checked against a real tenant with `tools/action1_probe.py`:
   `missing_critical_updates`/`missing_other_updates` fields are empty.
 - Timestamps look like `2026-10-23_09-48-30` and are UTC. Totals come as strings.
 - `update_status`/`vulnerability_status` show `ERROR` on healthy PCs too; not used.
+- `GET /vulnerabilities/{org}` → one record per CVE with `cisa_kev` `Yes`/`No`;
+  `GET /vulnerabilities/{org}/{cve}/endpoints` → the PCs, by `endpoint_id`, with the
+  vulnerable software and available updates. `endpoint_name` there is the hostname,
+  not the display name, so match on the ID.
 
 ## Development
 

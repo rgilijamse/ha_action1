@@ -10,7 +10,7 @@ from homeassistant.helpers.storage import Store
 
 from .api import Action1Client
 from .const import CONF_REGION, DOMAIN
-from .coordinator import STORAGE_VERSION, Action1Coordinator
+from .coordinator import STORAGE_VERSION, Action1Coordinator, Action1KevCoordinator
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
 
@@ -27,6 +27,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: Action1ConfigEntry) -> b
     )
     coordinator = Action1Coordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
+    coordinator.kev = Action1KevCoordinator(hass, entry, client)
+    if not await coordinator.kev.async_restore():
+        # Takes ~60 calls; the entities show the stored result (or unavailable) meanwhile.
+        entry.async_create_background_task(
+            hass, coordinator.kev.async_refresh(), f"{DOMAIN} known-exploited CVEs"
+        )
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -38,8 +44,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: Action1ConfigEntry) -> 
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: Action1ConfigEntry) -> None:
-    """Delete the stored "since" timestamps with the entry."""
-    await Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}").async_remove()
+    """Delete the stored "since" timestamps and known-exploited result with the entry."""
+    for key in (f"{DOMAIN}.{entry.entry_id}", f"{DOMAIN}.{entry.entry_id}.kev"):
+        await Store(hass, STORAGE_VERSION, key).async_remove()
 
 
 async def async_remove_config_entry_device(

@@ -19,6 +19,7 @@ ORG_ID = "0cf97f2f-0000-0000-0000-000000000001"
 TOKEN_URL = f"{BASE}/oauth2/token"
 ORGS_URL = f"{BASE}/organizations"
 ENDPOINTS_URL = f"{BASE}/endpoints/managed/{ORG_ID}"
+VULNS_URL = f"{BASE}/vulnerabilities/{ORG_ID}"
 
 PC_ACTIVE = "a6ad71c2-0000-0000-0000-000000000001"
 PC_OCCASIONAL = "c97db914-0000-0000-0000-000000000002"
@@ -66,6 +67,47 @@ def make_endpoint(
     }
 
 
+def make_software(product: str, version: str, update: str | None) -> dict:
+    return {
+        "product_name": product,
+        "platform": "Windows",
+        "versions": [{"version": version, "uninstall_type": "auto", "install_type": ["MSI"]}],
+        "available_updates": [
+            {"version": update, "package_id": f"{product}_builtin", "version_id": f"{update}_1"}
+        ] if update else [],
+        "cve_origin": [{"source": "NVD"}],
+    }
+
+
+CHROME = make_software("Google Chrome", "144.0.7559.133", "156.0.8078.48")
+EDGE = make_software("Microsoft Edge", "144.0.3719.115", "156.0.4314.42")
+VCREDIST = make_software("Microsoft Visual C++ 2005 Redistributable", "8.0.56336", None)
+
+
+def make_vulnerability(cve_id: str, kev: bool, software: list[dict]) -> dict:
+    return {
+        "cve_id": cve_id,
+        "cvss_score": "8.8",
+        "endpoints_count": "1",
+        "published_date": "2026-03-01_10-00-00",
+        "remediation_status": "Overdue",
+        "software": software,
+        "cisa_kev": "Yes" if kev else "No",
+        "organization_id": ORG_ID,
+    }
+
+
+def make_vulnerable_endpoint(endpoint_id: str, software: list[dict]) -> dict:
+    return {
+        "endpoint_id": endpoint_id,
+        "endpoint_name": "PC",
+        "OS": "Microsoft Windows 11 Home",
+        "software": software,
+        "organization_id": ORG_ID,
+        "user": "TEST\\user",
+    }
+
+
 class FakeAction1:
     """Registers Action1 endpoints on aioclient_mock; tweak fields, then call install()."""
 
@@ -83,6 +125,21 @@ class FakeAction1:
             make_endpoint(PC_STORED, "LT-Test (oud)", "Stored", last_seen="2026-02-10_13-47-43"),
             make_endpoint(SERVER, "server01", "Linux", platform="Linux", other=3),
         ]
+        self.kev_status = 200
+        self.vulnerabilities = [
+            make_vulnerability("CVE-2026-5281", True, [CHROME, EDGE]),
+            make_vulnerability("CVE-2026-2441", True, [CHROME]),
+            make_vulnerability("CVE-2007-0842", False, [VCREDIST]),
+        ]
+        # {cve_id: endpoints}; the old PC in storage shares a CVE with the active one.
+        self.vulnerable = {
+            "CVE-2026-5281": [
+                make_vulnerable_endpoint(PC_ACTIVE, [CHROME, EDGE]),
+                make_vulnerable_endpoint(PC_STORED, [CHROME, EDGE]),
+            ],
+            "CVE-2026-2441": [make_vulnerable_endpoint(PC_ACTIVE, [CHROME])],
+            "CVE-2007-0842": [make_vulnerable_endpoint(PC_OCCASIONAL, [VCREDIST])],
+        }
         self.install()
 
     def install(self) -> None:
@@ -98,6 +155,9 @@ class FakeAction1:
             })
         self.mock.get(ORGS_URL, json=self.page(self.orgs))
         self.mock.get(ENDPOINTS_URL, status=self.endpoints_status, json=self.page(self.endpoints))
+        for cve_id, endpoints in self.vulnerable.items():
+            self.mock.get(f"{VULNS_URL}/{cve_id}/endpoints", json=self.page(endpoints))
+        self.mock.get(VULNS_URL, status=self.kev_status, json=self.page(self.vulnerabilities))
 
     @staticmethod
     def page(items: list[dict]) -> dict:

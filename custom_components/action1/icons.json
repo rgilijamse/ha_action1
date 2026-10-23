@@ -14,11 +14,13 @@
       "other_updates": { "default": "mdi:package-up" },
       "critical_missing_since": { "default": "mdi:shield-alert-outline" },
       "reboot_pending_since": { "default": "mdi:restart-alert" },
+      "known_exploited_cves": { "default": "mdi:shield-bug-outline" },
       "critical_vulnerabilities": { "default": "mdi:bug-outline" },
       "last_seen": { "default": "mdi:eye-check-outline" },
       "days_since_seen": { "default": "mdi:calendar-clock" },
       "last_boot": { "default": "mdi:power" },
-      "last_successful_poll": { "default": "mdi:cloud-check-outline" }
+      "last_successful_poll": { "default": "mdi:cloud-check-outline" },
+      "last_known_exploited_check": { "default": "mdi:shield-search" }
     }
   }
 }

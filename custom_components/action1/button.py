@@ -19,7 +19,7 @@ async def async_setup_entry(
 
 
 class RefreshButton(Action1HubEntity, ButtonEntity):
-    """Poll Action1 now instead of waiting for the hourly poll. Read-only."""
+    """Poll Action1 now instead of waiting for the hourly poll and 6-hourly check. Read-only."""
 
     _attr_entity_category = EntityCategory.CONFIG
 
@@ -33,3 +33,7 @@ class RefreshButton(Action1HubEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await self.coordinator.async_request_refresh()
+        # The known-exploited check takes ~60 calls; don't hold up the button press for it.
+        self.coordinator.config_entry.async_create_background_task(
+            self.hass, self.coordinator.kev.async_request_refresh(), "action1 refresh known-exploited CVEs"
+        )

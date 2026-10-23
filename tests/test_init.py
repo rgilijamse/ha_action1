@@ -265,7 +265,8 @@ async def test_since_kept_when_action1_does_not_say(hass, entry, api, frozen) ->
 
 async def test_remove_entry_deletes_store(hass, entry, api, hass_storage) -> None:
     await setup(hass, entry)
-    assert f"{DOMAIN}.{entry.entry_id}" in hass_storage
+    keys = (f"{DOMAIN}.{entry.entry_id}", f"{DOMAIN}.{entry.entry_id}.kev")
+    assert all(key in hass_storage for key in keys)
     await hass.config_entries.async_remove(entry.entry_id)
     await hass.async_block_till_done()
-    assert f"{DOMAIN}.{entry.entry_id}" not in hass_storage
+    assert not any(key in hass_storage for key in keys)

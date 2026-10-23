@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import Action1Coordinator, Endpoint
+from .coordinator import Action1Coordinator, Action1KevCoordinator, Endpoint
 
 
 class Action1EndpointEntity(CoordinatorEntity[Action1Coordinator]):
@@ -40,12 +40,12 @@ class Action1EndpointEntity(CoordinatorEntity[Action1Coordinator]):
         return {"groups": self.endpoint.groups} if self.endpoint else None
 
 
-class Action1HubEntity(CoordinatorEntity[Action1Coordinator]):
+class Action1HubEntity[_C: (Action1Coordinator, Action1KevCoordinator)](CoordinatorEntity[_C]):
     """An entity on the service device that stands for the Action1 organization."""
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: Action1Coordinator, key: str) -> None:
+    def __init__(self, coordinator: _C, key: str) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.org_id}_{key}"
         self._attr_translation_key = key
