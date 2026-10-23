@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+*.pyc
+# raw API dumps: hostnames, users, IPs. Sanitise before turning into test fixtures.
+tools/out/
