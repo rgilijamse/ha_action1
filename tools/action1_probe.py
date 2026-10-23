@@ -4,6 +4,7 @@
   ACTION1_REGION=eu ACTION1_CLIENT_ID=... ACTION1_CLIENT_SECRET=... tools/action1_probe.py
   ... tools/action1_probe.py --org <org_id>      # pick an organization when there are several
   ... tools/action1_probe.py --try-requery       # also POST the installed-updates requery once
+  ... tools/action1_probe.py --kev               # map known-exploited CVEs to PCs
 
 Read-only apart from --try-requery. Stdlib only, so it runs on the host without installs.
 Writes every response to tools/out/ (gitignored: it holds hostnames, users and IPs) and
@@ -90,6 +91,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--org", help="organization id (default: the only one)")
     parser.add_argument("--try-requery", action="store_true", help="POST /updates/installed/{org}/requery once")
+    parser.add_argument("--kev", action="store_true", help="map Action1's cisa_kev CVEs to PCs (one call per CVE)")
     args = parser.parse_args()
 
     region = os.environ.get("ACTION1_REGION", "eu")
@@ -133,6 +135,22 @@ def main() -> None:
         detail = api.paged(f"/vulnerabilities/{org}/{cve_id}/endpoints")
         save(f"vulnerability_endpoints_{cve_id}", detail)
         print(f"  {cve_id}: {len(detail['items'])} endpoint(s), fields {keys_of(detail['items'])}")
+
+    if args.kev:
+        # Action1 flags KEV itself (cisa_kev: "Yes"/"No"). Test whether the list can be
+        # filtered server-side, then map each KEV CVE to the PCs it is open on.
+        filtered = api.request("GET", f"/vulnerabilities/{org}?" + urllib.parse.urlencode({"cisa_kev": "Yes", "limit": PAGE}))
+        save("vulnerabilities_cisa_kev_filter", filtered)
+        print(f"\n?cisa_kev=Yes returned {len(filtered.get('items') or [])} of {filtered.get('total_items')} items")
+        per_pc: dict[str, list[str]] = {}
+        for cve in (c for c in cves if c.get("cisa_kev") == "Yes"):
+            cve_id = cve["cve_id"]
+            detail = api.paged(f"/vulnerabilities/{org}/{cve_id}/endpoints")
+            save(f"vulnerability_endpoints_{cve_id}", detail)
+            for ep in detail["items"]:
+                per_pc.setdefault(ep.get("endpoint_name"), []).append(cve_id)
+        for name, ids in sorted(per_pc.items()):
+            print(f"  {name}: {len(ids)} KEV CVE(s): {', '.join(ids)}")
 
     try:
         with urllib.request.urlopen(KEV_URL, timeout=60) as resp:
