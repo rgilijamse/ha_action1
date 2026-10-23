@@ -15,8 +15,9 @@ region (Windows 11 PCs and one Ubuntu server).
 ## Setup
 
 1. Create an API credential in the Action1 console. A read-only role is enough.
-2. Install through HACS (custom repository), restart, then add the **Action1**
-   integration and enter the region, client ID and client secret.
+2. Copy `custom_components/action1` into Home Assistant's `custom_components`
+   folder (HACS can't install from this private repository), restart, then add the
+   **Action1** integration and enter the region, client ID and client secret.
 3. Optional: under **Configure**, pick Action1 groups to ignore. PCs in those groups
    get no entities.
 
