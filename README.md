@@ -15,9 +15,10 @@ region (Windows 11 PCs and one Ubuntu server).
 ## Setup
 
 1. Create an API credential in the Action1 console. A read-only role is enough.
-2. Copy `custom_components/action1` into Home Assistant's `custom_components`
-   folder (HACS can't install from this private repository), restart, then add the
-   **Action1** integration and enter the region, client ID and client secret.
+2. Install with HACS (custom repository, category Integration), or copy
+   `custom_components/action1` into Home Assistant's `custom_components` folder.
+   Restart, then add the **Action1** integration and enter the region, client ID
+   and client secret.
 3. Optional: under **Configure**, pick Action1 groups to ignore. PCs in those groups
    get no entities.
 
@@ -100,3 +101,8 @@ The probe dumps raw API responses to `tools/out/` (gitignored):
 ```
 ACTION1_REGION=na ACTION1_CLIENT_ID=... ACTION1_CLIENT_SECRET=... tools/action1_probe.py [--kev]
 ```
+
+## AI disclosure
+
+This code was written with the help of AI (Claude by Anthropic). It was reviewed
+and tested against a real Action1 tenant.

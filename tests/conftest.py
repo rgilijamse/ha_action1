@@ -15,16 +15,16 @@ from custom_components.action1.api import REGIONS
 from custom_components.action1.const import DOMAIN
 
 BASE = REGIONS["na"]
-ORG_ID = "0cf97f2f-0000-0000-0000-000000000001"
+ORG_ID = "00000000-0000-0000-0000-000000000001"
 TOKEN_URL = f"{BASE}/oauth2/token"
 ORGS_URL = f"{BASE}/organizations"
 ENDPOINTS_URL = f"{BASE}/endpoints/managed/{ORG_ID}"
 VULNS_URL = f"{BASE}/vulnerabilities/{ORG_ID}"
 
-PC_ACTIVE = "a6ad71c2-0000-0000-0000-000000000001"
-PC_OCCASIONAL = "c97db914-0000-0000-0000-000000000002"
-PC_STORED = "ec225f87-0000-0000-0000-000000000003"
-SERVER = "d8ac91f8-0000-0000-0000-000000000004"
+PC_ACTIVE = "10000000-0000-0000-0000-000000000001"
+PC_OCCASIONAL = "20000000-0000-0000-0000-000000000002"
+PC_STORED = "30000000-0000-0000-0000-000000000003"
+SERVER = "40000000-0000-0000-0000-000000000004"
 
 
 def make_endpoint(
@@ -61,7 +61,7 @@ def make_endpoint(
         "update_status": "ERROR",
         "vulnerability_status": "ERROR",
         "online_status": "SUCCESS",
-        "group_membership": [{"id": f"{group}_1770062929994", "name": group}],
+        "group_membership": [{"id": f"{group}_1700000000000", "name": group}],
         "missing_critical_updates": None,
         "missing_other_updates": None,
     }
@@ -115,7 +115,7 @@ class FakeAction1:
         self.mock = mock
         self.token_status = 200
         self.endpoints_status = 200
-        self.orgs = [{"id": ORG_ID, "name": "Alles", "type": "Organization"}]
+        self.orgs = [{"id": ORG_ID, "name": "Test Org", "type": "Organization"}]
         self.endpoints = [
             make_endpoint(PC_ACTIVE, "LT-Test", "Active", reboot="Yes", critical=1, other=2),
             make_endpoint(
@@ -182,7 +182,7 @@ def api(aioclient_mock: AiohttpClientMocker) -> FakeAction1:
 def entry() -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
-        title="Action1 Alles",
+        title="Action1 Test Org",
         unique_id=ORG_ID,
         data={
             "region": "na",

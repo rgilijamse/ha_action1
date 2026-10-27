@@ -22,7 +22,7 @@ async def test_single_organization(hass, api) -> None:
     assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Action1 Alles"
+    assert result["title"] == "Action1 Test Org"
     assert result["data"] == {
         "region": "na",
         "client_id": "api-key-test",
